@@ -3,7 +3,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+// Load environment variables if .env file exists
+try {
+  require('dotenv').config();
+} catch (error) {
+  console.log('No .env file found, using default values');
+}
 
 // Import database connection
 const connectDB = require('./config/database');
@@ -14,6 +19,12 @@ const serviceRoutes = require('./routes/services');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Set default environment variables if not provided
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+process.env.CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'az_globe_super_secret_jwt_key_2024_development';
+process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/az_globe_db';
 
 // Security middleware
 app.use(helmet());
@@ -81,13 +92,17 @@ app.use('*', (req, res) => {
 // Connect to database and start server
 const startServer = async () => {
   try {
-    await connectDB();
+    const dbConnected = await connectDB();
     
     app.listen(PORT, () => {
       console.log(`🚀 A-Z Globe Server running on port ${PORT}`);
       console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 Server URL: http://localhost:${PORT}`);
-      console.log(`🗄️  Database: Connected to MongoDB`);
+      if (dbConnected) {
+        console.log(`🗄️  Database: Connected to MongoDB`);
+      } else {
+        console.log(`⚠️  Database: Running without database connection (development mode)`);
+      }
       console.log(`🔐 Auth Routes: /api/auth`);
       console.log(`🛠️  Service Routes: /api/services`);
     });
